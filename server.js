@@ -4,11 +4,12 @@ const bcrypt = require("bcrypt");
 const db = require("./database");
 
 const app = express();
+app.use(express.static("public"));
 app.use(cors());
 app.use(express.json());
 
 app.get("/", (req,res)=>{
-    res.send("Servidor funcionando 🚀");
+    res.redirect("/login.html");
 });
 
 // REGISTRO
@@ -29,18 +30,25 @@ app.post("/register", async (req, res) => {
 
 // LOGIN
 app.post("/login", async (req, res) => {
-    const { usuario, password } = req.body;
+    try {
+        const { usuario, password } = req.body;
 
-    const result = await db.query(
-        "SELECT * FROM usuarios WHERE usuario=$1",
-        [usuario]
-    );
+        const result = await db.query(
+            "SELECT * FROM usuarios WHERE usuario=$1",
+            [usuario]
+        );
 
-    if (result.rows.length === 0)
-        return res.json({ success:false });
+        if (result.rows.length === 0)
+            return res.json({ success:false });
 
-    const valido = await bcrypt.compare(password, result.rows[0].password);
-    res.json({ success: valido });
+        const valido = await bcrypt.compare(password, result.rows[0].password);
+
+        res.json({ success: valido });
+
+    } catch (err) {
+        console.log(err);
+        res.json({ success:false });
+    }
 });
 
 const PORT = process.env.PORT || 8080;
