@@ -2,29 +2,34 @@ const express = require("express");
 const cors = require("cors");
 const bcrypt = require("bcrypt");
 const db = require("./database");
+const path = require("path");
 
 const app = express();
-app.use(express.static("public"));
+
 app.use(cors());
 app.use(express.json());
+app.use(express.static(__dirname));
+app.use("/frontend", express.static(path.join(__dirname, "frontend")));
 
-app.get("/", (req,res)=>{
-    res.redirect("/login.html");
+app.get("/", (req, res) => {
+    res.sendFile(path.join(__dirname, "index.html"));
 });
 
 // REGISTRO
 app.post("/register", async (req, res) => {
-    const { usuario, password } = req.body;
-    const hash = await bcrypt.hash(password, 10);
-
     try {
+        const { usuario, password } = req.body;
+        const hash = await bcrypt.hash(password, 10);
+
         await db.query(
             "INSERT INTO usuarios (usuario, password) VALUES ($1,$2)",
             [usuario, hash]
         );
-        res.json({ success: true });
+
+        res.json({ success:true });
+
     } catch {
-        res.json({ success: false, message: "Usuario ya existe" });
+        res.json({ success:false, message:"Usuario ya existe" });
     }
 });
 
@@ -42,16 +47,12 @@ app.post("/login", async (req, res) => {
             return res.json({ success:false });
 
         const valido = await bcrypt.compare(password, result.rows[0].password);
+        res.json({ success:valido });
 
-        res.json({ success: valido });
-
-    } catch (err) {
-        console.log(err);
+    } catch {
         res.json({ success:false });
     }
 });
 
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => {
-    console.log("Servidor listo en puerto", PORT);
-});
+app.listen(PORT, () => console.log("Servidor listo en puerto", PORT));
