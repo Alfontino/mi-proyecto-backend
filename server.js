@@ -1,86 +1,49 @@
 const express = require("express");
 const cors = require("cors");
 const bcrypt = require("bcrypt");
-const db = require("./database"); // tu conexión a SQLite
-
+const db = require("./database");
 
 const app = express();
-
-// Middleware
-app.use(cors()); // permite que tu frontend en Vercel/Railway haga fetch
+app.use(cors());
 app.use(express.json());
 
-// Puerto dinámico para producción (Railway asigna uno)
-const PORT = process.env.PORT || 8080;
+app.get("/", (req,res)=>{
+    res.send("Servidor funcionando 🚀");
+});
 
-// ------------------- RUTAS -------------------
-
-// Registro de usuario
+// REGISTRO
 app.post("/register", async (req, res) => {
-  try {
     const { usuario, password } = req.body;
-
-    if (!usuario || !password) {
-      return res.json({ success: false, message: "Faltan datos" });
-    }
-
-    // Hasheo de contraseña
     const hash = await bcrypt.hash(password, 10);
 
-    db.run(
-      "INSERT INTO usuarios (usuario, password) VALUES (?, ?)",
-      [usuario, hash],
-      function (err) {
-        if (err) {
-          return res.json({ success: false, message: "Usuario ya existe" });
-        }
+    try {
+        await db.query(
+            "INSERT INTO usuarios (usuario, password) VALUES ($1,$2)",
+            [usuario, hash]
+        );
         res.json({ success: true });
-      }
-    );
-  } catch (error) {
-    res.json({ success: false, message: error.message });
-  }
+    } catch {
+        res.json({ success: false, message: "Usuario ya existe" });
+    }
 });
 
-// Login
+// LOGIN
 app.post("/login", async (req, res) => {
-  try {
     const { usuario, password } = req.body;
 
-    if (!usuario || !password) {
-      return res.json({ success: false, message: "Faltan datos" });
-    }
-
-    db.get(
-      "SELECT * FROM usuarios WHERE usuario = ?",
-      [usuario],
-      async (err, row) => {
-        if (err) return res.json({ success: false, message: err.message });
-        if (!row) return res.json({ success: false, message: "Usuario no encontrado" });
-
-        const valido = await bcrypt.compare(password, row.password);
-        res.json({ success: valido });
-      }
+    const result = await db.query(
+        "SELECT * FROM usuarios WHERE usuario=$1",
+        [usuario]
     );
-  } catch (error) {
-    res.json({ success: false, message: error.message });
-  }
+
+    if (result.rows.length === 0)
+        return res.json({ success:false });
+
+    const valido = await bcrypt.compare(password, result.rows[0].password);
+    res.json({ success: valido });
 });
 
-// Obtener todos los usuarios (solo nombres, sin passwords)
-app.get("/usuarios", (req, res) => {
-  db.all("SELECT usuario FROM usuarios", (err, rows) => {
-    if (err) {
-      return res.json({ error: err.message });
-    }
-    res.json(rows);
-  });
-});
-
-// ------------------- INICIO DEL SERVIDOR -------------------
+const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
-  console.log(`Servidor corriendo en puerto ${PORT}`);
-  const PORT = process.env.PORT || 8080;
-
-app.listen(PORT, () => console.log(`Servidor corriendo en puerto ${PORT}`));
+    console.log("Servidor listo en puerto", PORT);
 });

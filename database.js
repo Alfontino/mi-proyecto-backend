@@ -1,15 +1,8 @@
-const sqlite3 = require("sqlite3").verbose();
+const { Pool } = require("pg");
 
-const db = new sqlite3.Database("./usuarios.db");
-
-db.serialize(() => {
-    db.run(`
-        CREATE TABLE IF NOT EXISTS usuarios (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            usuario TEXT UNIQUE,
-            password TEXT
-        )
-    `);
+const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false } // necesario en Railway
 });
 
-module.exports = db;
+module.exports = pool;
