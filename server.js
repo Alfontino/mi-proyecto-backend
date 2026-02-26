@@ -3,6 +3,7 @@ const cors = require("cors");
 const bcrypt = require("bcrypt");
 const db = require("./database"); // tu conexión a SQLite
 
+
 const app = express();
 
 // Middleware
@@ -79,4 +80,7 @@ app.get("/usuarios", (req, res) => {
 // ------------------- INICIO DEL SERVIDOR -------------------
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en puerto ${PORT}`);
+  const PORT = process.env.PORT || 8080;
+
+app.listen(PORT, () => console.log(`Servidor corriendo en puerto ${PORT}`));
 });
